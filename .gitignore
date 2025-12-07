@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+
+# Data & models (large files)
+data/
+backend/saved_models/
+results/
+
+# Virtual env
+venv/
+.env/
+.env.local
+
+# Node modules
+frontend/node_modules/
