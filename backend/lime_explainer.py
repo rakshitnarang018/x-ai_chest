@@ -33,7 +33,7 @@ def generate_lime_overlay(img_path_or_file):
         predict_fn,
         top_labels=1,
         hide_color=0,
-        num_samples=700     # can be increased if needed
+        num_samples=400     # can be increased if needed
     )
 
     top_label = explanation.top_labels[0]

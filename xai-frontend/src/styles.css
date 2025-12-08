@@ -1,3 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* apna custom CSS yahan likh sakte ho, chahe baad me */
+
 body {
     margin: 0;
     font-family: Arial, sans-serif;

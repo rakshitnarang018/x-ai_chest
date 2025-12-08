@@ -29,7 +29,8 @@ def ask_openai_lime_explanation(lime_np_img, predicted_label_idx):
         "The attached image is a chest X-ray with a LIME explanation overlay.\n"
         "Highlighted regions show important areas for prediction.\n\n"
         f"The model predicted: {label_name}\n\n"
-        "Explain why the model might be focusing on these regions.\n"
+        "Explain why the model might be focusing on these regions in 2-3 brief points.\n"
+         "do not give bold content\n"
         "Include limitations & reliability considerations.\n"
     )
 
