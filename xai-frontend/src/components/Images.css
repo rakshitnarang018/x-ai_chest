@@ -1,0 +1,13 @@
+.image-grid {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.image-grid img {
+    width: 250px;
+    height: auto;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+}
