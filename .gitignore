@@ -23,7 +23,6 @@ __pycache__/
 # Virtual environments
 venv/
 .env/
-.env.*/
 .venv/
 env/
 ENV/
@@ -44,39 +43,43 @@ dist/
 .ipynb_checkpoints/
 **/.ipynb_checkpoints/
 
-
-# Generic model formats
+###############################
+# Models (VERY IMPORTANT)
+###############################
 *.h5
 *.keras
 *.ckpt
 *.pth
 *.pt
+saved_models/
 
 ###############################
 # Data (large datasets)
 ###############################
-# Ignore full dataset directory
 data/
 
-# If you want, you can keep tiny text files like README:
-# !data/**/README.md
-
 ###############################
-# Generated analysis / figures
+# Generated results / outputs
 ###############################
-chest/confusion_matrices/
-chest/training_curves/
-chest/xai_samples/
+results/chest/confusion_matrices/
+results/chest/training_curves/
+results/chest/xai_samples/
 xai_temp/
 
 ###############################
-# Frontend (Vite/React)
+# Backend runtime files
+###############################
+backend/uploads/
+
+###############################
+# Frontend (React)
 ###############################
 
 # Node dependencies
 node_modules/
 
-# Vite / build output
+# Build output
+build/
 dist/
 .vite/
 
@@ -86,8 +89,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+###############################
 # Environment / secrets
+###############################
 .env
-**/.env
 .env.*
-

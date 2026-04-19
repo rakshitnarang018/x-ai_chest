@@ -1,50 +1,63 @@
 import base64
 import io
 import matplotlib.pyplot as plt
-from openai import OpenAI
+import requests
 from model_loader import load_model_and_classes
 
-# Requires OPENAI_API_KEY in environment
-client = OpenAI()
 
 def ask_openai_lime_explanation(lime_np_img, predicted_label_idx):
     """
-    Sends LIME overlay + predicted label to OpenAI multimodal model.
-    Returns explanation (text).
+    Uses LIME explanation + predicted label to generate reasoning via local LLM.
+    Optimized for low-RAM systems.
     """
 
-    # Convert numpy to PNG bytes
+    # Convert numpy image (kept for consistency, not used in API)
     buf = io.BytesIO()
     plt.imsave(buf, lime_np_img, format="png")
     buf.seek(0)
-    img_bytes = buf.read()
 
-    b64_image = base64.b64encode(img_bytes).decode("utf-8")
     _, idx_to_class = load_model_and_classes()
-
     label_name = idx_to_class[predicted_label_idx]
 
+    # 🔥 Optimized prompt (short = faster response)
     prompt = (
-        "You are a radiology assistant.\n\n"
-        "The attached image is a chest X-ray with a LIME explanation overlay.\n"
-        "Highlighted regions show important areas for prediction.\n\n"
-        f"The model predicted: {label_name}\n\n"
-        "Explain why the model might be focusing on these regions in 2-3 brief points.\n"
-         "do not give bold content\n"
-        "Include limitations & reliability considerations.\n"
+        "You are a radiology assistant.\n"
+        f"Prediction: {label_name}\n"
+        "LIME highlighted important regions.\n\n"
+        "Give 2-3 short bullet points explaining why.\n"
+        "Also add 1 limitation.\n"
+        "Keep it very brief.\n"
     )
 
-    response = client.responses.create(
-        model="gpt-4.1-mini",
-        input=[
-            {
-                "role": "user",
-                "content": [
-                    {"type": "input_text", "text": prompt},
-                    {"type": "input_image", "image_url": f"data:image/png;base64,{b64_image}"}
-                ]
-            }
-        ]
-    )
+    try:
+        response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={
+                "model": "phi3",   # ✅ lightweight model
+                "prompt": prompt,
+                "stream": False
+            },
+            timeout=180   # ✅ increased timeout
+        )
 
-    return response.output_text.strip()
+        result = response.json()
+        print("OLLAMA RAW RESPONSE:", result)
+
+        # ✅ Handle all formats safely
+        if "response" in result:
+            return result["response"].strip()
+
+        elif "message" in result and "content" in result["message"]:
+            return result["message"]["content"].strip()
+
+        elif "error" in result:
+            return f"Ollama Error: {result['error']}"
+
+        else:
+            return "Error: Unexpected response format from Ollama"
+
+    except requests.exceptions.Timeout:
+        return "Error: Model took too long to respond (timeout). Try again."
+
+    except Exception as e:
+        return f"Error: {str(e)}"
