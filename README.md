@@ -218,7 +218,7 @@ results/
 ### 1️⃣ Clone Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/xai-medical-imaging.git
+git clone https://github.com/rakshitnarang018/x-ai_chest.git
 cd xai-medical-imaging
 ```
 
