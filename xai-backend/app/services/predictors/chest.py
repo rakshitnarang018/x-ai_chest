@@ -89,10 +89,12 @@ class ChestPredictor:
         )
 
         severity = (
-            get_severity_from_confidence(
-                confidence
-            )
-        )
+           "none"
+    if frontend_label=="Normal"
+    else get_severity_from_confidence(
+        confidence
+    )
+)
 
         probabilities = {}
 

@@ -13,6 +13,8 @@ Single source of truth for:
 - Phi3 / Ollama config
 - API limits
 """
+from dotenv import load_dotenv
+load_dotenv()
 
 from pathlib import Path
 import os

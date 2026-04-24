@@ -28,6 +28,9 @@ from app.core.config import (
 )
 
 
+PREDICT_LOCK = Lock()
+
+
 class ModelRegistry:
     """
     Singleton-style model registry.
@@ -178,10 +181,11 @@ def predict(model, tensor):
     """
     Standardized prediction wrapper.
     """
-    preds = model.predict(
-        tensor,
-        verbose=0
-    )
+    with PREDICT_LOCK:
+        preds = model.predict(
+            tensor,
+            verbose=0
+        )
 
     return preds
 

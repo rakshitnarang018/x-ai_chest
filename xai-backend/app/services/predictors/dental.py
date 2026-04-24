@@ -165,6 +165,9 @@ def detect_cavities(
         patches
     )
 
+    if len(patches) > 64:
+       patches = patches[:64]
+
     if len(patches)==0:
         return []
 
