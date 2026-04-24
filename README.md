@@ -116,15 +116,11 @@ Detects X-ray category:
 #### 😬 Dental X-ray
 
 * Cavity
-* Impacted Teeth
-* Broken Crown/Root
-* Infection
 * Normal
 
 #### 🦵 Knee X-ray
 
 * Osteoporosis
-* Osteopenia
 * Normal
 
 ---
