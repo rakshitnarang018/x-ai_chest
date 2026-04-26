@@ -1,0 +1,26 @@
+.prob-chart {
+    margin-top: 20px;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.prob-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.bar {
+    width: 60%;
+    height: 12px;
+    background: #e9ecef;
+    border-radius: 5px;
+    margin: 0 10px;
+}
+
+.bar-fill {
+    height: 100%;
+    background: #0d6efd;
+    border-radius: 5px;
+}
