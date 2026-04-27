@@ -38,17 +38,30 @@ class BonePredictor:
 
         # ----------------------------------
         # Case 1: Binary sigmoid output
-        # Example: [0.83]
+        # Keras binary generator mapping:
+        # FRACTURE = 0
+        # NORMAL   = 1
+        #
+        # Sigmoid outputs probability of class 1:
+        # P(NORMAL)
         # ----------------------------------
         if np.size(preds) == 1:
 
-            prob_fracture = float(
+            prob_normal = float(
                 np.squeeze(preds)
             )
 
+            prob_fracture = (
+                1 - prob_normal
+            )
+
             if prob_fracture >= 0.5:
+
                 label = "Fracture"
-                confidence = prob_fracture
+
+                confidence = (
+                    prob_fracture
+                )
 
                 severity = (
                     get_severity_from_confidence(
@@ -57,18 +70,23 @@ class BonePredictor:
                 )
 
             else:
+
                 label = "Normal"
-                confidence = 1 - prob_fracture
+
+                confidence = (
+                    prob_normal
+                )
+
                 severity = "none"
 
             probabilities = {
                 "Fracture": prob_fracture,
-                "Normal": 1 - prob_fracture
+                "Normal": prob_normal
             }
 
         # ----------------------------------
         # Case 2: Two-class softmax output
-        # Example: [0.2, 0.8]
+        # Example: [0.2,0.8]
         # ----------------------------------
         else:
 

@@ -1,16 +1,12 @@
 """
 Dental Predictor Service
-------------------------
+Final calibrated anomaly-based version
+--------------------------------------
 
-Patch-based cavity detection
-
-Pipeline:
-512x512 image
--> extract patches
--> filter low-detail patches
--> select informative patches
--> batch predict patches
--> return cavity detections
+Whole image
+-> patch extraction
+-> patch scoring
+-> cavity decision from anomaly patch score
 """
 
 import cv2
@@ -25,14 +21,19 @@ from app.core.config import (
     PATCH_SIZE,
     PATCH_STRIDE,
     PATCH_STD_THRESHOLD,
-    TOP_PATCH_RATIO,
-    DENTAL_DETECTION_THRESHOLD
+    TOP_PATCH_RATIO
 )
 
 from app.services.preprocessing import (
     prepare_dental_image,
     batch_preprocess_patches
 )
+
+
+# ------------------------------------
+# Tuned anomaly threshold
+# ------------------------------------
+DENTAL_ANOMALY_THRESHOLD = 0.58
 
 
 # ======================================================
@@ -44,9 +45,9 @@ def extract_patches(
     patch_size=PATCH_SIZE,
     stride=PATCH_STRIDE
 ):
-    patches = []
+    patches=[]
 
-    h,w,_ = image.shape
+    h,w,_=image.shape
 
     for y in range(
         0,
@@ -58,7 +59,7 @@ def extract_patches(
             w-patch_size+1,
             stride
         ):
-            patch = image[
+            patch=image[
                 y:y+patch_size,
                 x:x+patch_size
             ]
@@ -71,13 +72,13 @@ def extract_patches(
 
 
 # ======================================================
-# VALID PATCH FILTER
+# PATCH FILTER
 # ======================================================
 
 def is_valid_patch(
     patch
 ):
-    gray = cv2.cvtColor(
+    gray=cv2.cvtColor(
         patch.astype(
             np.uint8
         ),
@@ -91,7 +92,7 @@ def is_valid_patch(
 
 
 # ======================================================
-# TOP INFORMATIVE PATCHES
+# INFORMATIVE PATCH SELECTION
 # ======================================================
 
 def get_top_patches(
@@ -102,7 +103,7 @@ def get_top_patches(
 
     for patch,x,y in patches:
 
-        gray = cv2.cvtColor(
+        gray=cv2.cvtColor(
             patch.astype(np.uint8),
             cv2.COLOR_RGB2GRAY
         )
@@ -111,10 +112,10 @@ def get_top_patches(
 
         scored.append(
             (
-             score,
-             patch,
-             x,
-             y
+                score,
+                patch,
+                x,
+                y
             )
         )
 
@@ -124,10 +125,10 @@ def get_top_patches(
     )
 
     k=max(
-       1,
-       int(
-         len(scored)*top_ratio
-       )
+        1,
+        int(
+            len(scored)*top_ratio
+        )
     )
 
     selected=scored[:k]
@@ -139,37 +140,37 @@ def get_top_patches(
 
 
 # ======================================================
-# BATCH PATCH PREDICTION
+# MODEL PATCH SCORING
 # ======================================================
 
-def detect_cavities(
+def score_patches(
     image_np
 ):
-    model = (
+    model=(
         ModelRegistry
         .get_dental_model()
     )
 
-    patches = extract_patches(
+    patches=extract_patches(
         image_np
     )
 
-    patches = [
+    patches=[
         p for p in patches
         if is_valid_patch(
-           p[0]
+            p[0]
         )
     ]
 
-    patches = get_top_patches(
+    patches=get_top_patches(
         patches
     )
 
-    if len(patches) > 64:
-       patches = patches[:64]
+    if len(patches)>64:
+        patches=patches[:64]
 
     if len(patches)==0:
-        return []
+        return [], []
 
     patch_arrays=[]
     coordinates=[]
@@ -184,40 +185,119 @@ def detect_cavities(
             (x,y)
         )
 
-    batch_tensor = (
+    batch_tensor=(
         batch_preprocess_patches(
             patch_arrays
         )
     )
 
-    preds = predict(
+    preds=predict(
         model,
         batch_tensor
     )
 
-    detections=[]
+    scores=[
+        float(p[0])
+        for p in preds
+    ]
 
-    for i,p in enumerate(preds):
+    return scores,coordinates
 
-        score=float(
-           p[0]
+
+# ======================================================
+# ANOMALY DECISION
+# ======================================================
+
+def classify_from_scores(
+    scores,
+    coordinates
+):
+
+    if len(scores)==0:
+        return (
+            "Normal",
+            0.95,
+            []
         )
 
-        if score > DENTAL_DETECTION_THRESHOLD:
+    min_score=min(scores)
 
-            x,y = coordinates[i]
+    mean_score=float(
+        np.mean(scores)
+    )
 
-            detections.append(
-                {
-                  "x":int(x),
-                  "y":int(y),
-                  "w":PATCH_SIZE,
-                  "h":PATCH_SIZE,
-                  "confidence":score
-                }
-            )
 
-    return detections
+    cavity_flag = (
+        (min_score < 0.62)
+        or
+        (
+            min_score < 0.69
+            and mean_score < 0.73
+        )
+    )
+
+
+    if cavity_flag:
+
+        detections=[]
+
+        for i,s in enumerate(scores):
+
+            if s < 0.69:
+
+                x,y=coordinates[i]
+
+                detections.append(
+                    {
+                      "x":int(x),
+                      "y":int(y),
+                      "w":PATCH_SIZE,
+                      "h":PATCH_SIZE,
+                      "confidence":float(
+                           1-s
+                      )
+                    }
+                )
+
+        return (
+            "Cavity",
+            float(1-min_score),
+            detections
+        )
+
+
+    # =========================================
+    # NORMAL CASE EXPLAINABILITY BOXES
+    # Return top confidence patches as evidence
+    # =========================================
+
+    detections=[]
+
+    top_indices=np.argsort(
+        scores
+    )[-3:]
+
+    for i in top_indices:
+
+        x,y=coordinates[i]
+
+        detections.append(
+            {
+              "x":int(x),
+              "y":int(y),
+              "w":PATCH_SIZE,
+              "h":PATCH_SIZE,
+              "confidence":float(
+                   scores[i]
+              )
+            }
+        )
+
+    return (
+        "Normal",
+        float(mean_score),
+        detections
+    )
 
 
 # ======================================================
@@ -230,35 +310,25 @@ class DentalPredictor:
     def predict(
         image_input
     ):
-        """
-        Input:
-           file path or upload
 
-        Returns:
-          dental detection response
-        """
-
-        image_np = prepare_dental_image(
+        image_np=prepare_dental_image(
             image_input
         )
 
-        detections = detect_cavities(
-            image_np
+        scores,coordinates=(
+            score_patches(
+                image_np
+            )
         )
 
-        if len(detections)>0:
-
-            max_conf=max(
-              d["confidence"]
-              for d in detections
-            )
-
-            label="Cavity"
-
-        else:
-
-            max_conf=0.95
-            label="Normal"
+        (
+            label,
+            confidence,
+            detections
+        )=classify_from_scores(
+            scores,
+            coordinates
+        )
 
         return {
 
@@ -267,18 +337,22 @@ class DentalPredictor:
             "label":label,
 
             "confidence":
-                float(max_conf),
+                float(
+                    confidence
+                ),
 
             "severity":
                 (
-                 "moderate"
-                 if label=="Cavity"
-                 else "none"
+                  "moderate"
+                  if label=="Cavity"
+                  else "none"
                 ),
 
             "detections":
                 detections,
 
             "num_detections":
-                len(detections)
+                len(
+                    detections
+                )
         }

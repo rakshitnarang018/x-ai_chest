@@ -1,23 +1,15 @@
 """
 Central configuration for Multi-Domain XAI Radiology Assistant
 --------------------------------------------------------------
-
-Single source of truth for:
-
-- Model paths
-- Class mappings
-- Image dimensions
-- Confidence thresholds
-- LIME parameters
-- Background worker settings
-- Phi3 / Ollama config
-- API limits
+Single source of truth
 """
+
 from dotenv import load_dotenv
 load_dotenv()
 
 from pathlib import Path
 import os
+
 
 # =========================================================
 # BASE PATHS
@@ -48,7 +40,7 @@ DENTAL_MODEL_PATH = MODEL_DIR / "dental_final.keras"
 
 
 # =========================================================
-# MODEL LABEL MAPS
+# LABEL MAPS
 # =========================================================
 
 TYPE_CLASSES = {
@@ -57,41 +49,50 @@ TYPE_CLASSES = {
     "dental": 2,
     "knee": 3
 }
-TYPE_IDX_TO_LABEL = {v: k for k, v in TYPE_CLASSES.items()}
+TYPE_IDX_TO_LABEL = {
+    v:k for k,v in TYPE_CLASSES.items()
+}
 
 
 CHEST_CLASSES = {
-    "CARDIOMEGALY": 0,
-    "COVID19": 1,
-    "EFFUSION": 2,
-    "NORMAL": 3,
-    "PNEUMONIA": 4,
-    "PNEUMOTHORAX": 5,
-    "TUBERCULOSIS": 6
+    "CARDIOMEGALY":0,
+    "COVID19":1,
+    "EFFUSION":2,
+    "NORMAL":3,
+    "PNEUMONIA":4,
+    "PNEUMOTHORAX":5,
+    "TUBERCULOSIS":6
 }
-CHEST_IDX_TO_LABEL = {v: k for k, v in CHEST_CLASSES.items()}
+CHEST_IDX_TO_LABEL = {
+    v:k for k,v in CHEST_CLASSES.items()
+}
 
 
 BONE_CLASSES = {
-    "FRACTURE": 0,
-    "NORMAL": 1
+    "FRACTURE":0,
+    "NORMAL":1
 }
-BONE_IDX_TO_LABEL = {v: k for k, v in BONE_CLASSES.items()}
+BONE_IDX_TO_LABEL = {
+    v:k for k,v in BONE_CLASSES.items()
+}
 
 
 KNEE_CLASSES = {
-    "NORMAL": 0,
-    "OSTEOPOROSIS": 1
+    "NORMAL":0,
+    "OSTEOPOROSIS":1
 }
-KNEE_IDX_TO_LABEL = {v: k for k, v in KNEE_CLASSES.items()}
+KNEE_IDX_TO_LABEL = {
+    v:k for k,v in KNEE_CLASSES.items()
+}
 
 
-# Binary patch classifier
 DENTAL_CLASSES = {
-    "NORMAL": 0,
-    "CAVITY": 1
+    "NORMAL":0,
+    "CAVITY":1
 }
-DENTAL_IDX_TO_LABEL = {v: k for k, v in DENTAL_CLASSES.items()}
+DENTAL_IDX_TO_LABEL = {
+    v:k for k,v in DENTAL_CLASSES.items()
+}
 
 
 # =========================================================
@@ -101,7 +102,10 @@ DENTAL_IDX_TO_LABEL = {v: k for k, v in DENTAL_CLASSES.items()}
 IMG_HEIGHT = 224
 IMG_WIDTH = 224
 
-IMG_SIZE = (IMG_HEIGHT, IMG_WIDTH)
+IMG_SIZE = (
+    IMG_HEIGHT,
+    IMG_WIDTH
+)
 
 CHANNELS = 3
 
@@ -124,10 +128,13 @@ MAX_UPLOAD_MB = 20
 
 
 # =========================================================
-# DENTAL PATCH DETECTION CONFIG
+# DENTAL PATCH CONFIG
 # =========================================================
 
-DENTAL_INPUT_SIZE = (512, 512)
+DENTAL_INPUT_SIZE = (
+    512,
+    512
+)
 
 PATCH_SIZE = 224
 PATCH_STRIDE = 112
@@ -136,7 +143,22 @@ PATCH_STD_THRESHOLD = 15
 
 TOP_PATCH_RATIO = 0.40
 
+
+# ---------------------------------------------------------
+# CALIBRATED CAVITY DETECTION (NEW)
+# ---------------------------------------------------------
+
+# old = 0.60
+# higher confidence needed to reduce false positives
 DENTAL_DETECTION_THRESHOLD = 0.60
+DENTAL_MIN_POSITIVE_PATCHES = 1
+DENTAL_TOP_K_FOR_AGGREGATION = 2
+DENTAL_IMAGE_CONFIDENCE_THRESHOLD = 0.72
+DENTAL_ANOMALY_THRESHOLD = 0.63
+
+# Optional future spatial clustering safeguard
+ENABLE_PATCH_CLUSTER_FILTER = False
+MIN_NEIGHBORING_PATCHES = 2
 
 
 # =========================================================
@@ -144,15 +166,13 @@ DENTAL_DETECTION_THRESHOLD = 0.60
 # =========================================================
 
 LOW_CONFIDENCE_THRESHOLD = 0.60
-
 HIGH_CONFIDENCE_THRESHOLD = 0.85
 
 
-# Severity heuristics
 SEVERITY_THRESHOLDS = {
-    "mild": 0.65,
-    "moderate": 0.80,
-    "severe": 0.90
+    "mild":0.65,
+    "moderate":0.80,
+    "severe":0.90
 }
 
 
@@ -189,7 +209,7 @@ JOB_TIMEOUT_SECONDS = 120
 
 
 # =========================================================
-# CACHE SETTINGS
+# CACHE
 # =========================================================
 
 ENABLE_IMAGE_HASH_CACHE = False
@@ -198,7 +218,7 @@ CACHE_MAX_ITEMS = 500
 
 
 # =========================================================
-# OLLAMA / PHI3 CONFIG
+# OLLAMA / PHI3
 # =========================================================
 
 OLLAMA_BASE_URL = os.getenv(
@@ -212,7 +232,7 @@ LLM_TIMEOUT_SECONDS = 120
 
 
 # =========================================================
-# FASTAPI APP SETTINGS
+# FASTAPI SETTINGS
 # =========================================================
 
 API_TITLE = "Multi-Domain XAI Radiology Assistant"
@@ -246,11 +266,9 @@ HEALTH_CHECK_MODELS_REQUIRED = [
 # HELPERS
 # =========================================================
 
-def get_severity_from_confidence(confidence: float) -> str:
-    """
-    Simple confidence-based severity heuristic.
-    Can later be disease-specific.
-    """
+def get_severity_from_confidence(
+    confidence: float
+) -> str:
 
     if confidence >= SEVERITY_THRESHOLDS["severe"]:
         return "severe"
@@ -261,6 +279,12 @@ def get_severity_from_confidence(confidence: float) -> str:
     return "mild"
 
 
-def is_allowed_file(filename: str) -> bool:
-    ext = Path(filename).suffix.lower()
+def is_allowed_file(
+    filename:str
+) -> bool:
+
+    ext = Path(
+        filename
+    ).suffix.lower()
+
     return ext in ALLOWED_EXTENSIONS

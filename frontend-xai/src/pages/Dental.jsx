@@ -7,124 +7,248 @@ import GradCamViewer from "../components/visualization/GradCamViewer";
 import LlamaResponse from "../components/ai/LlamaResponse";
 import LimeButton from "../components/buttons/LimeButton";
 import BoundingBoxOverlay from "../components/visualization/BoundingBoxOverlay";
-import { predictDental } from "../services/dentalService";
-import { getGradCam, getLlama } from "../services/predictionService";
-import { convertToBase64 } from "../utils/base64";
 
-export default function Dental() {
-  const [image, setImage] = useState(null);
+import {
+ analyzeImage
+} from "../services/predictionService";
 
-  const [prediction, setPrediction] = useState(null);
-  const [gradcam, setGradcam] = useState(null);
-  const [llama, setLlama] = useState(null);
+import useAnalysisPolling from "../hooks/useAnalysisPolling";
 
-  const [boxes, setBoxes] = useState([]);
-  const [showBoxes, setShowBoxes] = useState(false);
+export default function Dental(){
 
-  const [loading, setLoading] = useState({
-    prediction: false,
-    gradcam: false,
-    llama: false,
-  });
+const [image,setImage]=useState(null);
+const [jobId,setJobId]=useState(null);
 
-  const handleUpload = async (file) => {
-  setImage(URL.createObjectURL(file));
+const [prediction,setPrediction]=useState(null);
 
-  setLoading({
-    prediction: true,
-    gradcam: true,
-    llama: true,
-  });
+const [boxes,setBoxes]=useState([]);
 
-  try {
-    const base64 = await convertToBase64(file);
+const [gradcam,setGradcam]=useState(null);
+const [llama,setLlama]=useState(null);
 
-    // 🔹 Prediction + boxes
-    const res = await predictDental(base64);
+const [showBoxes,setShowBoxes]=useState(false);
 
-    setPrediction({
-      label: res.label,
-      confidence: res.confidence,
-    });
+const [loading,setLoading]=useState({
+ prediction:false,
+ gradcam:false,
+ llama:false
+});
 
-    setBoxes(res.boxes);
 
-    setLoading((prev) => ({ ...prev, prediction: false }));
+const handlePollUpdate=(res)=>{
 
-    // 🔹 Parallel
-    getGradCam(base64).then((res) => {
-      setGradcam(res.image);
-      setLoading((prev) => ({ ...prev, gradcam: false }));
-    });
+ if(res.prediction){
 
-    getLlama(base64).then((res) => {
-      setLlama(res.text);
-      setLoading((prev) => ({ ...prev, llama: false }));
-    });
+   setPrediction(
+    res.prediction
+   );
 
-  } catch (err) {
-    console.error(err);
-  }
+   if(
+    res.prediction.detections
+   ){
+    setBoxes(
+      res.prediction.detections
+    );
+   }
+
+ }
+
+
+ if(
+  res.gradcam?.image_base64
+ ){
+ setGradcam(
+`data:image/png;base64,${res.gradcam.image_base64}`
+ );
+
+ setLoading(prev=>({
+   ...prev,
+   gradcam:false
+ }));
+ }
+
+
+ if(
+  res.report?.report
+ ){
+
+setLlama(
+`
+Findings:
+${res.report.report.findings}
+
+Impression:
+${res.report.report.impression}
+
+Limitations:
+${res.report.report.limitations}
+`
+);
+
+setLoading(prev=>({
+ ...prev,
+ llama:false
+}));
+
+ }
+
 };
 
-  const handleLimeClick = () => {
-    setShowBoxes(true);
-  };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-gray-950 text-white px-6 py-10">
 
-      {/* Title */}
-      <motion.h1
-        initial={{ opacity: 0, y: -30 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-3xl md:text-4xl font-bold mb-8 text-center bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent"
-      >
-        Dental Image Analysis
-      </motion.h1>
+const {
+ stopPolling
+}=useAnalysisPolling({
+ jobId,
+ enabled:!!jobId,
+ onUpdate:handlePollUpdate
+});
 
-      {/* Upload */}
-      <ImageUploader onUpload={handleUpload} />
 
-      {image && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8"
-        >
 
-          {/* LEFT */}
-          <div className="space-y-6">
-            <PredictionCard data={prediction} loading={loading.prediction} />
-            <LlamaResponse data={llama} loading={loading.llama} />
+const handleUpload=async(file)=>{
 
-            <LimeButton onClick={handleLimeClick} />
-          </div>
+try{
 
-          {/* RIGHT */}
-          <div className="space-y-6">
+stopPolling();
 
-            {/* Image with Bounding Boxes */}
-            <motion.div
-              className="bg-white/5 border border-white/10 rounded-2xl p-4"
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-            >
-              <p className="text-gray-400 mb-2">Detected Regions</p>
+setImage(
+ URL.createObjectURL(file)
+);
 
-              <BoundingBoxOverlay
-                image={image}
-                boxes={boxes}
-                show={showBoxes}
-              />
-            </motion.div>
+setPrediction(null);
+setBoxes([]);
+setGradcam(null);
+setLlama(null);
+setShowBoxes(false);
 
-            {/* Grad-CAM */}
-            <GradCamViewer data={gradcam} loading={loading.gradcam} />
+setLoading({
+ prediction:true,
+ gradcam:true,
+ llama:true
+});
 
-          </div>
-        </motion.div>
-      )}
-    </div>
-  );
+
+const res=
+ await analyzeImage(file);
+
+
+setJobId(
+ res.job_id
+);
+
+setPrediction(
+ res.prediction
+);
+
+if(
+ res.prediction.detections
+){
+ setBoxes(
+  res.prediction.detections
+ );
+}
+
+setLoading(prev=>({
+ ...prev,
+ prediction:false
+}));
+
+}
+catch(err){
+
+console.error(
+"Dental analyze error:",
+err
+);
+
+}
+
+};
+
+
+
+const handleLimeClick=()=>{
+ setShowBoxes(true);
+};
+
+
+
+return(
+<div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-gray-950 text-white px-6 py-10">
+
+<motion.h1
+initial={{opacity:0,y:-30}}
+animate={{opacity:1,y:0}}
+className="text-3xl md:text-4xl font-bold mb-8 text-center bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent"
+>
+Dental Image Analysis
+</motion.h1>
+
+
+<ImageUploader
+ onUpload={handleUpload}
+/>
+
+
+{image && (
+
+<motion.div
+initial={{opacity:0}}
+animate={{opacity:1}}
+className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8"
+>
+
+<div className="space-y-6">
+
+<PredictionCard
+ data={prediction}
+ loading={loading.prediction}
+/>
+
+<LlamaResponse
+ data={llama}
+ loading={loading.llama}
+/>
+
+<LimeButton
+ onClick={handleLimeClick}
+/>
+
+</div>
+
+
+<div className="space-y-6">
+
+<motion.div
+className="bg-white/5 border border-white/10 rounded-2xl p-4"
+>
+
+<p className="text-gray-400 mb-2">
+Detected Regions
+</p>
+
+<BoundingBoxOverlay
+ image={image}
+ boxes={boxes}
+ show={showBoxes}
+/>
+
+</motion.div>
+
+
+<GradCamViewer
+ data={gradcam}
+ loading={loading.gradcam}
+/>
+
+</div>
+
+</motion.div>
+
+)}
+
+</div>
+)
+
 }

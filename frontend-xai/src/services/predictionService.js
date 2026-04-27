@@ -1,21 +1,65 @@
 import api from "./api";
 
-export const predictImage = async (base64) => {
-  const res = await api.post("/predict", { image: base64 });
+/*
+Backend Contract
+
+GET  /health
+POST /analyze
+GET  /analysis/{job_id}
+POST /analysis/{job_id}/lime
+*/
+
+
+/* -----------------------------
+Health Check
+----------------------------- */
+export const checkHealth = async () => {
+  const res = await api.get("/health");
   return res.data;
 };
 
-export const getGradCam = async (base64) => {
-  const res = await api.post("/gradcam", { image: base64 });
+
+/* -----------------------------
+Upload + Fast Prediction
+multipart/form-data
+----------------------------- */
+export const analyzeImage = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await api.post(
+    "/analyze",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+
   return res.data;
 };
 
-export const getLlama = async (base64) => {
-  const res = await api.post("/llama", { image: base64 });
+
+/* -----------------------------
+Polling endpoint
+----------------------------- */
+export const getAnalysis = async (jobId) => {
+  const res = await api.get(
+    `/analysis/${jobId}`
+  );
+
   return res.data;
 };
 
-export const getLime = async (base64) => {
-  const res = await api.post("/lime", { image: base64 });
+
+/* -----------------------------
+On-demand LIME trigger
+----------------------------- */
+export const requestLime = async (jobId) => {
+  const res = await api.post(
+    `/analysis/${jobId}/lime`
+  );
+
   return res.data;
 };

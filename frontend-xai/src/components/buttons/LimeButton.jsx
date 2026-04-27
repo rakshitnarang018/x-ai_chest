@@ -14,7 +14,7 @@ export default function LimeButton({ onClick, loading }) {
             : "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg shadow-green-500/20"
         }`}
     >
-      {loading ? "Generating LIME..." : "Show LIME Explanation"}
+      {loading ? "Generating Image Explanation..." : "Show Detailed Image Explanation"}
     </motion.button>
   );
 }
