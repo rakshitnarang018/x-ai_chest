@@ -25,7 +25,7 @@ export default function Navbar() {
           whileHover={{ scale: 1.05 }}
           className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent cursor-pointer"
         >
-          AI MedVision
+          XAI For Medical Imaging
         </motion.h1>
 
         {/* Nav Links */}

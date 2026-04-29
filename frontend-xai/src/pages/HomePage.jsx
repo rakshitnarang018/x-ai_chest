@@ -104,7 +104,7 @@ export default function HomePage() {
           transition={{ duration: 0.8 }}
           className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_0_25px_rgba(99,102,241,0.6)]"
         >
-          AI-Powered Medical Image Analysis
+          X-RAY IMAGE ANALYSIS
         </motion.h1>
 
         {/* Subtitle */}
